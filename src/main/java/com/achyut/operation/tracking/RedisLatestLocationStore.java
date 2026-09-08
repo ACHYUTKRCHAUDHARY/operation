@@ -1,5 +1,6 @@
 package com.achyut.operation.tracking;
 
+import com.achyut.operation.resilience.FaultToleranceExecutor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -12,19 +13,27 @@ import java.util.Optional;
 @ConditionalOnProperty(name = "app.tracking.redis-enabled", havingValue = "true")
 public class RedisLatestLocationStore implements LatestLocationStore {
     private final StringRedisTemplate redis;
+    private final FaultToleranceExecutor faultTolerance;
 
-    public RedisLatestLocationStore(StringRedisTemplate redis) { this.redis = redis; }
+    public RedisLatestLocationStore(StringRedisTemplate redis, FaultToleranceExecutor faultTolerance) {
+        this.redis = redis;
+        this.faultTolerance = faultTolerance;
+    }
 
     public void put(Long deliveryId, Snapshot s) {
-        String value = s.latitude() + "," + s.longitude() + "," + nullable(s.accuracyMeters()) + "," + nullable(s.speedKph()) + "," + s.recordedAt();
-        redis.opsForValue().set(key(deliveryId), value, Duration.ofHours(24));
+        faultTolerance.run("redis-location", () -> {
+            String value = s.latitude() + "," + s.longitude() + "," + nullable(s.accuracyMeters()) + "," + nullable(s.speedKph()) + "," + s.recordedAt();
+            redis.opsForValue().set(key(deliveryId), value, Duration.ofHours(24));
+        });
     }
 
     public Optional<Snapshot> get(Long deliveryId) {
-        String value = redis.opsForValue().get(key(deliveryId));
-        if (value == null) return Optional.empty();
-        String[] p = value.split(",", -1);
-        return Optional.of(new Snapshot(Double.parseDouble(p[0]), Double.parseDouble(p[1]), parseNullable(p[2]), parseNullable(p[3]), Instant.parse(p[4])));
+        return faultTolerance.execute("redis-location", () -> {
+            String value = redis.opsForValue().get(key(deliveryId));
+            if (value == null) return Optional.empty();
+            String[] p = value.split(",", -1);
+            return Optional.of(new Snapshot(Double.parseDouble(p[0]), Double.parseDouble(p[1]), parseNullable(p[2]), parseNullable(p[3]), Instant.parse(p[4])));
+        }, Optional::empty);
     }
 
     private static String key(Long id) { return "operation:delivery:" + id + ":latest-location"; }

@@ -4,6 +4,7 @@ import com.achyut.operation.api.ApiModels.*;
 import com.achyut.operation.api.OperationsMapper;
 import com.achyut.operation.asset.*;
 import com.achyut.operation.common.*;
+import com.achyut.operation.search.*;
 import com.achyut.operation.service.usecase.DeliveryOperations;
 import com.achyut.operation.work.*;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ public class DeliveryService implements DeliveryOperations {
     private final AuditPort audit;
     private final DeliveryAssetStatusPolicy assetStatusPolicy;
     private final TransitionPolicy<Delivery.DeliveryStatus> transitionPolicy;
+    private final SearchIndexPort searchIndex;
 
     @Override
     public DeliveryView create(DeliveryRequest r) {
@@ -37,6 +39,7 @@ public class DeliveryService implements DeliveryOperations {
             .expectedDeliveryAt(r.expectedDeliveryAt()).build();
         delivery = deliveries.save(delivery);
         audit.record("DELIVERY", delivery.getId(), "DELIVERY_CREATED", "system", delivery.getDeliveryNumber() + " for " + asset.getAssetCode());
+        searchIndex.refresh(SearchEntityType.DELIVERY, delivery.getId());
         return mapper.delivery(delivery);
     }
 
@@ -57,6 +60,8 @@ public class DeliveryService implements DeliveryOperations {
         }
         assetStatusPolicy.synchronize(delivery);
         audit.record("DELIVERY", id, "STATUS_CHANGED", r.actor(), old + " -> " + r.status());
+        searchIndex.refresh(SearchEntityType.DELIVERY, id);
+        searchIndex.refresh(SearchEntityType.ASSET, delivery.getAsset().getId());
         return mapper.delivery(delivery);
     }
 }

@@ -48,5 +48,12 @@ app:
     redis-enabled: ${TRACKING_REDIS_ENABLED:false}
     stale-minutes: 25
     near-destination-meters: 500
+  search:
+    elasticsearch-enabled: ${ELASTICSEARCH_ENABLED:false}
+  fault-tolerance:
+    timeout-ms: ${DEPENDENCY_TIMEOUT_MS:800}
+    failure-threshold: ${CIRCUIT_FAILURE_THRESHOLD:5}
+    open-seconds: ${CIRCUIT_OPEN_SECONDS:30}
+    max-concurrent: ${DEPENDENCY_MAX_CONCURRENT:20}
   storage:
     root: ${STORAGE_ROOT:uploads}

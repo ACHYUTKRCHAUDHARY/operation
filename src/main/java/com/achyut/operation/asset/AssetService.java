@@ -6,6 +6,7 @@ import com.achyut.operation.api.OperationsMapper;
 import com.achyut.operation.common.AuditPort;
 import com.achyut.operation.customer.Customer;
 import com.achyut.operation.customer.CustomerRepository;
+import com.achyut.operation.search.*;
 import com.achyut.operation.service.usecase.AssetOperations;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class AssetService implements AssetOperations {
     private final CustomerRepository customers;
     private final OperationsMapper mapper;
     private final AuditPort audit;
+    private final SearchIndexPort searchIndex;
 
     @Override
     public AssetView create(AssetRequest r) {
@@ -30,6 +32,7 @@ public class AssetService implements AssetOperations {
             .sizeDescription(r.sizeDescription()).serialNumber(r.serialNumber()).currentYardLocation(r.currentYardLocation()).customer(customer).build();
         asset = assets.save(asset);
         audit.record("ASSET", asset.getId(), "ASSET_CREATED", "system", asset.getAssetCode() + " created");
+        searchIndex.refresh(SearchEntityType.ASSET, asset.getId());
         return mapper.asset(asset);
     }
 

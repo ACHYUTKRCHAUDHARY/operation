@@ -4,6 +4,8 @@ import com.achyut.operation.api.ApiModels.LocationRequest;
 import com.achyut.operation.api.ApiModels.LocationView;
 import com.achyut.operation.common.AuditPort;
 import com.achyut.operation.delivery.*;
+import com.achyut.operation.resilience.FaultToleranceExecutor;
+import com.achyut.operation.search.*;
 import com.achyut.operation.tracking.LatestLocationStore;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ public class TrackingService {
     private final SimpMessagingTemplate messagingTemplate;
     private final AuditPort audit;
     private final LatestLocationStore latestLocationStore;
+    private final FaultToleranceExecutor faultTolerance;
+    private final SearchIndexPort searchIndex;
 
     @Value("${app.tracking.near-destination-meters:500}")
     private double nearDestinationMeters;
@@ -43,10 +47,11 @@ public class TrackingService {
         if (distance <= nearDestinationMeters && delivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
             delivery.setStatus(Delivery.DeliveryStatus.NEAR_DESTINATION);
             audit.record("DELIVERY", deliveryId, "GEOFENCE_ENTERED", "system", "Vehicle entered " + Math.round(nearDestinationMeters) + "m destination geofence");
+            searchIndex.refresh(SearchEntityType.DELIVERY, deliveryId);
         }
 
         LocationView view = view(update, distance);
-        messagingTemplate.convertAndSend("/topic/deliveries/" + deliveryId + "/location", view);
+        faultTolerance.run("websocket-broker", () -> messagingTemplate.convertAndSend("/topic/deliveries/" + deliveryId + "/location", view));
         return view;
     }
 

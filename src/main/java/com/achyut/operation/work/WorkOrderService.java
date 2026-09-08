@@ -5,6 +5,7 @@ import com.achyut.operation.api.OperationsMapper;
 import com.achyut.operation.asset.*;
 import com.achyut.operation.common.*;
 import com.achyut.operation.customer.*;
+import com.achyut.operation.search.*;
 import com.achyut.operation.service.usecase.WorkOrderOperations;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ public class WorkOrderService implements WorkOrderOperations {
     private final AuditPort audit;
     private final WorkOrderAssetStatusPolicy assetStatusPolicy;
     private final TransitionPolicy<WorkOrder.WorkStatus> transitionPolicy;
+    private final SearchIndexPort searchIndex;
 
     @Override
     public WorkOrderView create(WorkOrderRequest r) {
@@ -38,6 +40,7 @@ public class WorkOrderService implements WorkOrderOperations {
             .expectedCompletionAt(r.expectedCompletionAt()).progressPercent(0).build();
         workOrder = workOrders.save(workOrder);
         audit.record("WORK_ORDER", workOrder.getId(), "WORK_ORDER_CREATED", "system", workOrder.getOrderNumber() + " for " + asset.getAssetCode());
+        searchIndex.refresh(SearchEntityType.WORK_ORDER, workOrder.getId());
         return mapper.workOrder(workOrder);
     }
 
@@ -59,6 +62,8 @@ public class WorkOrderService implements WorkOrderOperations {
         }
         assetStatusPolicy.synchronize(workOrder);
         audit.record("WORK_ORDER", id, "STATUS_CHANGED", actor(r.actor()), old + " -> " + r.status() + (r.blockedReason() == null ? "" : " | " + r.blockedReason()));
+        searchIndex.refresh(SearchEntityType.WORK_ORDER, id);
+        searchIndex.refresh(SearchEntityType.ASSET, workOrder.getAsset().getId());
         return mapper.workOrder(workOrder);
     }
 
@@ -73,6 +78,7 @@ public class WorkOrderService implements WorkOrderOperations {
             assetStatusPolicy.synchronize(workOrder);
         }
         audit.record("WORK_ORDER", id, "STAGE_UPDATE", actor(r.actor()), r.stage() + " -> " + r.status() + (r.note() == null ? "" : " | " + r.note()));
+        searchIndex.refresh(SearchEntityType.WORK_ORDER, id);
         return mapper.workUpdate(update);
     }
 

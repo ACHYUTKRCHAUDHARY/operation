@@ -30,6 +30,12 @@ spring:
     redis:
       url: ${REDIS_URL:redis://localhost:6379}
       timeout: 1s
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URL:http://localhost:9200}
+    connection-timeout: 1s
+    socket-timeout: 2s
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
 
 server:
   forward-headers-strategy: framework
@@ -47,3 +53,10 @@ app:
     secure-cookie: ${SECURE_COOKIE:true}
   tracking:
     redis-enabled: ${TRACKING_REDIS_ENABLED:false}
+  search:
+    elasticsearch-enabled: ${ELASTICSEARCH_ENABLED:false}
+  fault-tolerance:
+    timeout-ms: ${DEPENDENCY_TIMEOUT_MS:800}
+    failure-threshold: ${CIRCUIT_FAILURE_THRESHOLD:5}
+    open-seconds: ${CIRCUIT_OPEN_SECONDS:30}
+    max-concurrent: ${DEPENDENCY_MAX_CONCURRENT:20}
