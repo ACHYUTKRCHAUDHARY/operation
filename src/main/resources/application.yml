@@ -55,5 +55,7 @@ app:
     failure-threshold: ${CIRCUIT_FAILURE_THRESHOLD:5}
     open-seconds: ${CIRCUIT_OPEN_SECONDS:30}
     max-concurrent: ${DEPENDENCY_MAX_CONCURRENT:20}
+    max-attempts: ${DEPENDENCY_MAX_ATTEMPTS:2}
+    retry-backoff-ms: ${DEPENDENCY_RETRY_BACKOFF_MS:75}
   storage:
     root: ${STORAGE_ROOT:uploads}
