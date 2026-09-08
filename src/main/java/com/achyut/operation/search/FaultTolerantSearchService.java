@@ -18,7 +18,7 @@ public class FaultTolerantSearchService implements SearchQueryService {
     public List<SearchResult> search(String query, SearchEntityType type, String status, int limit) {
         ElasticsearchSearchEngine engine = elasticsearch.getIfAvailable();
         if (engine == null) return databaseFallback.search(query, type, status, limit);
-        return faultTolerance.execute(
+        return faultTolerance.executeWithRetry(
             "elasticsearch-search",
             () -> engine.search(query, type, status, limit),
             () -> databaseFallback.search(query, type, status, limit)
