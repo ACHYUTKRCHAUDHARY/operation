@@ -16,6 +16,42 @@ Content-Type: application/json
 
 The idempotency scope includes HTTP method, request path, authenticated client headers/cookies, and a SHA-256 request fingerprint. Completed results are retained for 24 hours by default (`app.idempotency.ttl-hours`). Multipart file-upload endpoints are intentionally excluded.
 
+## SOLID architecture and design patterns
+
+The core API was refactored away from a single god service into focused application services and small use-case interfaces.
+
+```text
+HTTP Controller
+   |
+   +--> CustomerOperations  -> CustomerService
+   +--> AssetOperations     -> AssetService
+   +--> WorkOrderOperations -> WorkOrderService
+   +--> InventoryOperations -> InventoryService
+   +--> DeliveryOperations  -> DeliveryService
+   +--> DashboardQuery      -> DashboardQueryService
+   +--> AuditQuery          -> JpaAuditService
+```
+
+### SOLID
+
+- **Single Responsibility Principle (SRP):** customer, asset, work-order, inventory, delivery, dashboard, audit, mapping, tracking, commercial, procurement, fleet, and support behavior are handled by separate services/components.
+- **Open/Closed Principle (OCP):** workflow transitions, asset-status synchronization, fleet eligibility, warranty coverage, reference-number generation, location storage, and auditing use replaceable policies/ports. New implementations can be added without rewriting callers.
+- **Liskov Substitution Principle (LSP):** callers depend on contracts such as `AuditPort`, `ReferenceNumberGenerator`, `TransitionPolicy<T>`, and the use-case interfaces; compatible implementations can be substituted without changing controller/business code.
+- **Interface Segregation Principle (ISP):** `OperationsController` depends on small interfaces (`CustomerOperations`, `AssetOperations`, `WorkOrderOperations`, etc.) rather than one oversized service interface.
+- **Dependency Inversion Principle (DIP):** high-level business services depend on abstractions such as `AuditPort`, `TransitionPolicy<T>`, `WarrantyCoveragePolicy`, `AssignmentEligibilityPolicy`, and `ReferenceNumberGenerator`; Spring injects the concrete adapters.
+
+### Patterns used
+
+- **Strategy / Policy Pattern:** `WorkOrderTransitionPolicy`, `DeliveryTransitionPolicy`, `WorkOrderAssetStatusPolicy`, `DeliveryAssetStatusPolicy`, `AssignmentEligibilityPolicy`, and `WarrantyCoveragePolicy` encapsulate replaceable business rules.
+- **Ports and Adapters:** `AuditPort` separates business code from JPA audit persistence (`JpaAuditService`), and the tracking module already abstracts latest-location storage behind `LatestLocationStore` implementations.
+- **Repository Pattern:** Spring Data repositories isolate persistence concerns from application services.
+- **Mapper Pattern:** `OperationsMapper` centralizes entity-to-API model conversion instead of duplicating DTO mapping in every service.
+- **State-machine/Transition Policy:** work orders and deliveries validate legal lifecycle transitions before mutating state; invalid jumps fail fast.
+- **Filter / Interceptor Pattern:** the idempotency filter applies retry protection across mutation APIs without duplicating code in every controller.
+- **Dependency Injection:** Spring constructor injection wires implementations to interfaces/policies and makes services independently testable.
+
+Examples of enforced lifecycle rules include preventing `COMPLETED -> IN_PROGRESS` for work orders and `PLANNED -> DELIVERED` for deliveries. Transition-policy unit tests are included under `src/test/java`.
+
 ## Problems it solves
 
 - Replaces manual WhatsApp location sharing with centralized delivery tracking.
