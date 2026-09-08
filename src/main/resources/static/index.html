@@ -20,17 +20,25 @@
       <button class="nav-item" data-view="deliveries">➜ <span>Deliveries</span></button>
       <button class="nav-item" data-view="inventory">▤ <span>Inventory</span></button>
       <button class="nav-item" data-view="customers">◎ <span>Customers</span></button>
+      <button class="nav-item" data-view="search">⌕ <span>Global Search</span></button>
+      <button class="nav-item" data-view="system">◉ <span>System Health</span></button>
+      <a class="nav-item nav-link" href="/management.html">◆ <span>Business Center</span></a>
     </nav>
-    <div class="sidebar-foot"><div class="status-dot"></div><div><strong>System Online</strong><span>Spring Boot API</span></div></div>
+    <div class="sidebar-foot"><div id="sidebar-status-dot" class="status-dot"></div><div><strong id="sidebar-status">System Online</strong><span id="sidebar-status-detail">Spring Boot API</span></div></div>
   </aside>
 
   <main>
     <header class="topbar">
       <div><p class="eyebrow">CONTAINER & PORTA CABIN CONTROL CENTER</p><h1 id="page-title">Operations Dashboard</h1></div>
-      <div class="top-actions"><button class="ghost-btn" onclick="refreshAll()">↻ Refresh</button><button class="primary-btn" onclick="openQuickCreate()">＋ New Record</button></div>
+      <div class="top-actions">
+        <button class="ghost-btn" onclick="refreshAll()">↻ Refresh</button>
+        <button class="primary-btn" onclick="openQuickCreate()">＋ New Record</button>
+        <button class="ghost-btn" id="logout-btn">Logout</button>
+      </div>
     </header>
 
     <section id="dashboard" class="view active-view">
+      <div id="system-banner" class="system-banner hidden"></div>
       <div id="kpis" class="kpi-grid"></div>
       <div class="dashboard-grid">
         <div class="panel span-2"><div class="panel-head"><div><span class="section-label">LIVE OPERATIONS</span><h2>Active Work</h2></div><button class="text-btn" onclick="showView('work-orders')">View all →</button></div><div id="active-work" class="work-list"></div></div>
@@ -51,6 +59,21 @@
     <section id="inventory" class="view"><div class="view-toolbar"><input id="inventory-search" placeholder="Search SKU or material…" oninput="renderInventory()"><span></span><button class="primary-btn" onclick="openModal('inventory-modal')">＋ Material</button></div><div class="panel"><div id="inventory-table" class="table-wrap"></div></div></section>
 
     <section id="customers" class="view"><div class="view-toolbar"><input id="customer-search" placeholder="Search customer or company…" oninput="renderCustomers()"><span></span><button class="primary-btn" onclick="openModal('customer-modal')">＋ Customer</button></div><div class="panel"><div id="customer-table" class="table-wrap"></div></div></section>
+
+    <section id="search" class="view">
+      <div class="panel search-panel">
+        <div class="panel-head"><div><span class="section-label">ELASTICSEARCH + SQL FALLBACK</span><h2>Global operational search</h2></div><span id="search-source" class="badge gray">Ready</span></div>
+        <div class="search-controls"><input id="global-search" placeholder="Search ORD-2048, asset, customer, vehicle, status…"><select id="global-search-type"><option value="">All types</option><option value="CUSTOMER">Customers</option><option value="ASSET">Assets</option><option value="WORK_ORDER">Work Orders</option><option value="DELIVERY">Deliveries</option></select><input id="global-search-status" placeholder="Optional status"><button class="primary-btn" id="global-search-btn">Search</button></div>
+        <div id="search-results" class="search-results"><div class="empty">Search across customers, assets, work orders and deliveries.</div></div>
+      </div>
+    </section>
+
+    <section id="system" class="view">
+      <div class="health-grid">
+        <div class="panel span-2"><div class="panel-head"><div><span class="section-label">FAULT TOLERANCE</span><h2>Dependency health</h2></div><button class="ghost-btn" onclick="loadHealth()">↻ Check now</button></div><div id="health-overview" class="health-overview"></div><div id="dependency-health" class="dependency-grid"></div></div>
+        <div class="panel"><span class="section-label">DEGRADATION POLICY</span><h2>Failure behavior</h2><div class="policy-list"><div><strong>Elasticsearch</strong><span>Falls back to PostgreSQL search</span></div><div><strong>Redis</strong><span>Falls back to persisted GPS history</span></div><div><strong>WebSocket</strong><span>GPS write survives fan-out failure</span></div><div><strong>PostgreSQL</strong><span>Fails fast; no unsafe write retries</span></div></div></div>
+      </div>
+    </section>
   </main>
 </div>
 
