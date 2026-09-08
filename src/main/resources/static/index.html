@@ -3,94 +3,71 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YardFlow Operations</title>
+  <meta name="theme-color" content="#173f2c" />
+  <title>YardFlow — Operations Control Center</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand"><div class="brand-mark">YF</div><div><strong>YardFlow</strong><span>Operations</span></div></div>
+    <div class="brand"><div class="brand-mark">YF</div><div><strong>YardFlow</strong><span>Control Center</span></div></div>
     <nav>
-      <button class="nav-item active" data-view="dashboard">▦ <span>Dashboard</span></button>
+      <button class="nav-item active" data-view="dashboard">▦ <span>Overview</span></button>
       <button class="nav-item" data-view="work-orders">⌁ <span>Work Orders</span></button>
       <button class="nav-item" data-view="assets">▣ <span>Assets</span></button>
-      <button class="nav-item" data-view="deliveries">➜ <span>Deliveries</span></button>
+      <button class="nav-item" data-view="deliveries">➜ <span>Dispatch</span></button>
       <button class="nav-item" data-view="inventory">▤ <span>Inventory</span></button>
       <button class="nav-item" data-view="customers">◎ <span>Customers</span></button>
       <button class="nav-item" data-view="search">⌕ <span>Global Search</span></button>
       <button class="nav-item" data-view="system">◉ <span>System Health</span></button>
       <a class="nav-item nav-link" href="/management.html">◆ <span>Business Center</span></a>
     </nav>
-    <div class="sidebar-foot"><div id="sidebar-status-dot" class="status-dot"></div><div><strong id="sidebar-status">System Online</strong><span id="sidebar-status-detail">Spring Boot API</span></div></div>
+    <div class="sidebar-foot"><div id="sidebar-status-dot" class="status-dot"></div><div><strong id="sidebar-status">Checking system…</strong><span id="sidebar-status-detail">Fault-tolerant services</span></div></div>
   </aside>
 
   <main>
     <header class="topbar">
-      <div><p class="eyebrow">CONTAINER & PORTA CABIN CONTROL CENTER</p><h1 id="page-title">Operations Dashboard</h1></div>
-      <div class="top-actions">
-        <button class="ghost-btn" onclick="refreshAll()">↻ Refresh</button>
-        <button class="primary-btn" onclick="openQuickCreate()">＋ New Record</button>
-        <button class="ghost-btn" id="logout-btn">Logout</button>
-      </div>
+      <div><p class="eyebrow">REAL-TIME YARD & DELIVERY OPERATIONS</p><h1 id="page-title">Operations Overview</h1></div>
+      <div class="top-actions"><button class="ghost-btn" id="refresh-btn" onclick="refreshAll(true)">↻ Refresh</button><button class="primary-btn" onclick="openQuickCreate()">＋ New Work Order</button><button class="ghost-btn" id="logout-btn">Logout</button></div>
     </header>
 
     <section id="dashboard" class="view active-view">
       <div id="system-banner" class="system-banner hidden"></div>
       <div id="kpis" class="kpi-grid"></div>
       <div class="dashboard-grid">
-        <div class="panel span-2"><div class="panel-head"><div><span class="section-label">LIVE OPERATIONS</span><h2>Active Work</h2></div><button class="text-btn" onclick="showView('work-orders')">View all →</button></div><div id="active-work" class="work-list"></div></div>
+        <div class="panel"><div class="panel-head"><div><span class="section-label">LIVE OPERATIONS</span><h2>Active Work</h2></div><button class="text-btn" onclick="showView('work-orders')">View all →</button></div><div id="active-work" class="work-list"></div></div>
         <div class="panel"><div class="panel-head"><div><span class="section-label">ATTENTION</span><h2>Exceptions</h2></div></div><div id="alerts" class="alert-list"></div></div>
       </div>
       <div class="dashboard-grid lower">
-        <div class="panel span-2"><div class="panel-head"><div><span class="section-label">DISPATCH</span><h2>Deliveries</h2></div><button class="text-btn" onclick="showView('deliveries')">Open dispatch →</button></div><div id="delivery-preview" class="table-wrap"></div></div>
+        <div class="panel"><div class="panel-head"><div><span class="section-label">DISPATCH</span><h2>Live Deliveries</h2></div><button class="text-btn" onclick="showView('deliveries')">Open dispatch →</button></div><div id="delivery-preview" class="table-wrap"></div></div>
         <div class="panel"><div class="panel-head"><div><span class="section-label">STOCK</span><h2>Low Inventory</h2></div></div><div id="low-stock"></div></div>
       </div>
     </section>
 
-    <section id="work-orders" class="view"><div class="view-toolbar"><input id="work-search" placeholder="Search work order, asset or customer…" oninput="renderWorkOrders()"><select id="work-filter" onchange="renderWorkOrders()"><option value="">All statuses</option><option>IN_PROGRESS</option><option>BLOCKED</option><option>QUALITY_CHECK</option><option>READY_FOR_DISPATCH</option><option>COMPLETED</option></select><button class="primary-btn" onclick="openModal('work-modal')">＋ Work Order</button></div><div class="panel"><div id="work-table" class="table-wrap"></div></div></section>
+    <section id="work-orders" class="view"><div class="view-toolbar"><input id="work-search" placeholder="Search work order, asset or customer…"><select id="work-filter"><option value="">All statuses</option><option>IN_PROGRESS</option><option>BLOCKED</option><option>QUALITY_CHECK</option><option>READY_FOR_DISPATCH</option><option>COMPLETED</option></select><button class="primary-btn" onclick="openModal('work-modal')">＋ Work Order</button></div><div class="panel"><div id="work-table" class="table-wrap"></div></div></section>
+    <section id="assets" class="view"><div class="view-toolbar"><input id="asset-search" placeholder="Search asset code, customer or yard…"><select id="asset-filter"><option value="">All asset types</option><option>CONTAINER</option><option>PORTA_CABIN</option></select><button class="primary-btn" onclick="openModal('asset-modal')">＋ Asset</button></div><div class="panel"><div id="asset-table" class="card-grid"></div></div></section>
+    <section id="deliveries" class="view"><div class="view-toolbar"><input id="delivery-search" placeholder="Search delivery, vehicle, driver or asset…"><span></span><button class="primary-btn" onclick="openModal('delivery-modal')">＋ Dispatch</button></div><div class="panel"><div id="delivery-table" class="table-wrap"></div></div></section>
+    <section id="inventory" class="view"><div class="view-toolbar"><input id="inventory-search" placeholder="Search SKU, material or supplier…"><span></span><button class="primary-btn" onclick="openModal('inventory-modal')">＋ Material</button></div><div class="panel"><div id="inventory-table" class="table-wrap"></div></div></section>
+    <section id="customers" class="view"><div class="view-toolbar"><input id="customer-search" placeholder="Search customer, company, phone or email…"><span></span><button class="primary-btn" onclick="openModal('customer-modal')">＋ Customer</button></div><div class="panel"><div id="customer-table" class="table-wrap"></div></div></section>
 
-    <section id="assets" class="view"><div class="view-toolbar"><input id="asset-search" placeholder="Search asset code, customer…" oninput="renderAssets()"><select id="asset-filter" onchange="renderAssets()"><option value="">All asset types</option><option>CONTAINER</option><option>PORTA_CABIN</option></select><button class="primary-btn" onclick="openModal('asset-modal')">＋ Asset</button></div><div class="panel"><div id="asset-table" class="card-grid"></div></div></section>
+    <section id="search" class="view"><div class="panel search-panel"><div class="panel-head"><div><span class="section-label">ELASTICSEARCH + SQL FALLBACK</span><h2>Global operational search</h2></div><span id="search-source" class="badge gray">Ready</span></div><div class="search-controls"><input id="global-search" autocomplete="off" placeholder="Search WO-2048, customer, asset, vehicle, status…"><select id="global-search-type"><option value="">All types</option><option value="CUSTOMER">Customers</option><option value="ASSET">Assets</option><option value="WORK_ORDER">Work Orders</option><option value="DELIVERY">Deliveries</option></select><input id="global-search-status" placeholder="Optional status"><button class="primary-btn" id="global-search-btn">Search</button></div><div id="search-results" class="search-results"><div class="empty">Search across the complete operational graph.</div></div></div></section>
 
-    <section id="deliveries" class="view"><div class="view-toolbar"><input id="delivery-search" placeholder="Search delivery, vehicle, driver…" oninput="renderDeliveries()"><span></span><button class="primary-btn" onclick="openModal('delivery-modal')">＋ Dispatch</button></div><div class="panel"><div id="delivery-table" class="table-wrap"></div></div></section>
-
-    <section id="inventory" class="view"><div class="view-toolbar"><input id="inventory-search" placeholder="Search SKU or material…" oninput="renderInventory()"><span></span><button class="primary-btn" onclick="openModal('inventory-modal')">＋ Material</button></div><div class="panel"><div id="inventory-table" class="table-wrap"></div></div></section>
-
-    <section id="customers" class="view"><div class="view-toolbar"><input id="customer-search" placeholder="Search customer or company…" oninput="renderCustomers()"><span></span><button class="primary-btn" onclick="openModal('customer-modal')">＋ Customer</button></div><div class="panel"><div id="customer-table" class="table-wrap"></div></div></section>
-
-    <section id="search" class="view">
-      <div class="panel search-panel">
-        <div class="panel-head"><div><span class="section-label">ELASTICSEARCH + SQL FALLBACK</span><h2>Global operational search</h2></div><span id="search-source" class="badge gray">Ready</span></div>
-        <div class="search-controls"><input id="global-search" placeholder="Search ORD-2048, asset, customer, vehicle, status…"><select id="global-search-type"><option value="">All types</option><option value="CUSTOMER">Customers</option><option value="ASSET">Assets</option><option value="WORK_ORDER">Work Orders</option><option value="DELIVERY">Deliveries</option></select><input id="global-search-status" placeholder="Optional status"><button class="primary-btn" id="global-search-btn">Search</button></div>
-        <div id="search-results" class="search-results"><div class="empty">Search across customers, assets, work orders and deliveries.</div></div>
-      </div>
-    </section>
-
-    <section id="system" class="view">
-      <div class="health-grid">
-        <div class="panel span-2"><div class="panel-head"><div><span class="section-label">FAULT TOLERANCE</span><h2>Dependency health</h2></div><button class="ghost-btn" onclick="loadHealth()">↻ Check now</button></div><div id="health-overview" class="health-overview"></div><div id="dependency-health" class="dependency-grid"></div></div>
-        <div class="panel"><span class="section-label">DEGRADATION POLICY</span><h2>Failure behavior</h2><div class="policy-list"><div><strong>Elasticsearch</strong><span>Falls back to PostgreSQL search</span></div><div><strong>Redis</strong><span>Falls back to persisted GPS history</span></div><div><strong>WebSocket</strong><span>GPS write survives fan-out failure</span></div><div><strong>PostgreSQL</strong><span>Fails fast; no unsafe write retries</span></div></div></div>
-      </div>
-    </section>
+    <section id="system" class="view"><div class="health-grid"><div class="panel"><div class="panel-head"><div><span class="section-label">FAULT TOLERANCE</span><h2>Dependency health</h2></div><button class="ghost-btn" onclick="loadHealth()">↻ Check now</button></div><div id="health-overview" class="health-overview"></div><div id="dependency-health" class="dependency-grid"></div></div><div class="panel"><span class="section-label">GRACEFUL DEGRADATION</span><h2>Failure behavior</h2><div class="policy-list"><div><strong>Elasticsearch unavailable</strong><span>Search automatically falls back to PostgreSQL.</span></div><div><strong>Redis unavailable</strong><span>Latest tracking can fall back to persisted GPS history.</span></div><div><strong>WebSocket fan-out fails</strong><span>The GPS write remains committed and delivery tracking survives.</span></div><div><strong>PostgreSQL unavailable</strong><span>Writes fail fast; unsafe retries are intentionally prevented.</span></div></div></div></div></section>
   </main>
 </div>
-
 <div id="toast" class="toast"></div>
 
 <div id="customer-modal" class="modal"><div class="modal-card"><button class="modal-close" onclick="closeModal('customer-modal')">×</button><span class="section-label">NEW CUSTOMER</span><h2>Create customer</h2><form id="customer-form" class="form-grid"><label>Name<input name="name" required></label><label>Company<input name="companyName"></label><label>Phone<input name="phone"></label><label>Email<input name="email" type="email"></label><label class="full">Billing address<textarea name="billingAddress"></textarea></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('customer-modal')">Cancel</button><button class="primary-btn">Save Customer</button></div></form></div></div>
-
-<div id="asset-modal" class="modal"><div class="modal-card"><button class="modal-close" onclick="closeModal('asset-modal')">×</button><span class="section-label">NEW ASSET</span><h2>Register asset</h2><form id="asset-form" class="form-grid"><label>Asset code<input name="assetCode" placeholder="PC-205" required></label><label>Type<select name="type"><option>CONTAINER</option><option>PORTA_CABIN</option></select></label><label>Customer<select name="customerId" class="customer-select" required></select></label><label>Size<input name="sizeDescription" placeholder="20 x 10 ft"></label><label>Serial number<input name="serialNumber"></label><label>Yard location<input name="currentYardLocation" placeholder="Repair Bay 1"></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('asset-modal')">Cancel</button><button class="primary-btn">Register Asset</button></div></form></div></div>
-
+<div id="asset-modal" class="modal"><div class="modal-card"><button class="modal-close" onclick="closeModal('asset-modal')">×</button><span class="section-label">NEW ASSET</span><h2>Register asset</h2><form id="asset-form" class="form-grid"><label>Asset code<input name="assetCode" placeholder="CONT-205" required></label><label>Type<select name="type"><option>CONTAINER</option><option>PORTA_CABIN</option></select></label><label>Customer<select name="customerId" class="customer-select" required></select></label><label>Size<input name="sizeDescription" placeholder="20 × 10 ft"></label><label>Serial number<input name="serialNumber"></label><label>Yard location<input name="currentYardLocation" placeholder="Repair Bay 1"></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('asset-modal')">Cancel</button><button class="primary-btn">Register Asset</button></div></form></div></div>
 <div id="work-modal" class="modal"><div class="modal-card wide"><button class="modal-close" onclick="closeModal('work-modal')">×</button><span class="section-label">NEW WORK ORDER</span><h2>Plan repair / production</h2><form id="work-form" class="form-grid"><label>Customer<select name="customerId" class="customer-select" required></select></label><label>Asset<select name="assetId" class="asset-select" required></select></label><label>Work type<select name="workType"><option>CONTAINER_REPAIR</option><option>PORTA_CABIN_REPAIR</option><option>PORTA_CABIN_PRODUCTION</option><option>INSTALLATION</option><option>MAINTENANCE</option></select></label><label>Priority<select name="priority"><option>NORMAL</option><option>HIGH</option><option>URGENT</option></select></label><label>Assigned team<input name="assignedTeam"></label><label>Estimated cost<input name="estimatedCost" type="number" min="0"></label><label class="full">Scope of work<textarea name="scopeOfWork"></textarea></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('work-modal')">Cancel</button><button class="primary-btn">Create Work Order</button></div></form></div></div>
-
 <div id="inventory-modal" class="modal"><div class="modal-card"><button class="modal-close" onclick="closeModal('inventory-modal')">×</button><span class="section-label">INVENTORY</span><h2>Add material</h2><form id="inventory-form" class="form-grid"><label>SKU<input name="sku" required></label><label>Name<input name="name" required></label><label>Unit<input name="unit" placeholder="sheet"></label><label>Quantity<input name="quantityOnHand" type="number" min="0" step="0.01" required></label><label>Reorder level<input name="reorderLevel" type="number" min="0" step="0.01" required></label><label>Unit cost<input name="unitCost" type="number" min="0" step="0.01"></label><label class="full">Preferred supplier<input name="preferredSupplier"></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('inventory-modal')">Cancel</button><button class="primary-btn">Save Material</button></div></form></div></div>
-
 <div id="delivery-modal" class="modal"><div class="modal-card wide"><button class="modal-close" onclick="closeModal('delivery-modal')">×</button><span class="section-label">DISPATCH</span><h2>Create delivery</h2><form id="delivery-form" class="form-grid"><label>Work order<select name="workOrderId" class="work-select" required></select></label><label>Asset<select name="assetId" class="asset-select" required></select></label><label>Driver name<input name="driverName"></label><label>Driver phone<input name="driverPhone"></label><label>Vehicle number<input name="vehicleNumber"></label><label>Vehicle type<input name="vehicleType"></label><label>Destination latitude<input name="destinationLatitude" type="number" step="any" required></label><label>Destination longitude<input name="destinationLongitude" type="number" step="any" required></label><label class="full">Destination address<textarea name="destinationAddress" required></textarea></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('delivery-modal')">Cancel</button><button class="primary-btn">Create Dispatch</button></div></form></div></div>
-
 <div id="status-modal" class="modal"><div class="modal-card"><button class="modal-close" onclick="closeModal('status-modal')">×</button><span class="section-label">WORKFLOW UPDATE</span><h2>Update work order</h2><form id="status-form" class="form-grid"><input type="hidden" name="id"><label>Status<select name="status"><option>INSPECTION_PENDING</option><option>ESTIMATE_PENDING</option><option>CUSTOMER_APPROVAL_PENDING</option><option>APPROVED</option><option>IN_PROGRESS</option><option>BLOCKED</option><option>QUALITY_CHECK</option><option>READY_FOR_DISPATCH</option><option>COMPLETED</option></select></label><label>Progress %<input name="progressPercent" type="number" min="0" max="100"></label><label class="full">Blocked reason / note<input name="blockedReason"></label><label class="full">Updated by<input name="actor" value="Operations Manager"></label><div class="form-actions full"><button type="button" class="ghost-btn" onclick="closeModal('status-modal')">Cancel</button><button class="primary-btn">Update Status</button></div></form></div></div>
 
+<script src="/js/runtime-client.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>
