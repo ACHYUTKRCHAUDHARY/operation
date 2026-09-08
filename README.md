@@ -1,132 +1,332 @@
 # YardFlow Operations
 
-A Spring Boot operations platform for container repair, porta cabin production, dispatch, inventory, and live delivery tracking.
+YardFlow is a production-style Spring Boot platform for container repair, porta cabin production, workshop operations, dispatch, live GPS delivery tracking, billing, procurement, warranty, and customer support.
 
-## Problems it solves
+## Business problems solved
 
-- Replaces manual WhatsApp location sharing with centralized delivery tracking.
-- Tracks container repair and porta cabin production stage-by-stage.
-- Shows blocked jobs, overdue work, low-stock materials, and delayed deliveries.
-- Keeps customer, asset, work-order, dispatch, and audit history in one system.
-- Supports live GPS updates with destination geofencing.
+- Replaces manual WhatsApp live-location sharing with centralized GPS tracking and customer tracking links.
+- Tracks containers and porta cabins from receipt, inspection, repair/production, QC, dispatch, delivery, and installation.
+- Records work-stage updates, photo evidence, blocked reasons, delays, and audit history.
+- Tracks drivers, vehicles, permits, insurance, availability, and dispatch assignment.
+- Handles inventory, suppliers, purchase requests, approvals, and stock receipt.
+- Handles quotations, customer approval, invoices, partial/full payments, complaints, and warranty coverage.
+- Surfaces operational exceptions such as overdue work, delayed deliveries, low stock, stale location data, and compliance problems.
 
 ## Tech stack
 
 - Java 21
 - Spring Boot 4.1.1
-- Spring Web / Validation
-- Spring Data JPA + Hibernate
-- Spring Security scaffold
+- Spring Web + Validation
+- Spring Data JPA / Hibernate
+- Spring Security + JWT
+- HttpOnly JWT browser authentication + Bearer token API authentication
 - Spring WebSocket
-- PostgreSQL production profile
-- H2 local development profile
-- Redis dependency reserved for production live-state caching
+- Redis latest-location cache with in-memory development fallback
+- PostgreSQL production database
+- H2 local development database
+- Flyway migrations
+- ZXing QR generation
+- Multipart file/POD uploads
 - Vanilla HTML/CSS/JavaScript
 - Leaflet + OpenStreetMap
 - Maven + GitHub Actions
 
 ## Main modules
 
+### Core operations
 - Customers
-- Assets: Containers and Porta Cabins
-- Work Orders: repair, production, maintenance, installation
-- Work Stage Updates
-- Inventory and low-stock alerts
-- Dispatch and Delivery
-- GPS Location History
-- Geofencing
-- Operational Dashboard
-- Audit Timeline
+- Container and porta-cabin assets
+- Repair / production / installation work orders
+- Stage-by-stage work updates
+- Photo evidence
+- Quality check and ready-for-dispatch flow
+- Audit timeline
+- Operational dashboard and exception alerts
 
-## Workflow
+### Live delivery
+- Delivery creation and dispatch
+- Driver/vehicle assignment
+- GPS history
+- Redis latest-location state
+- WebSocket location updates
+- Destination geofencing
+- Stale-location health checks
+- Public opaque tracking tokens
+- QR customer tracking links
+- Proof-of-delivery uploads
+
+### Fleet
+- Drivers and license expiry
+- Vehicles
+- Insurance expiry
+- Permit expiry
+- Service due date
+- Availability validation before assignment
+
+### Commercial
+- Quotations
+- Server-side quote total calculation
+- Customer approval
+- Invoices
+- Partial and full payments
+
+### Procurement
+- Suppliers
+- Purchase requests
+- Approval/order/receipt workflow
+- Automatic inventory increase when material is received
+
+### Support
+- Asset warranties
+- Customer complaints
+- Automatic warranty-covered detection
+- Complaint assignment and resolution
+
+## End-to-end workflow
 
 ```text
 Customer
-  -> Asset
+  -> Asset received
   -> Inspection
-  -> Repair / Production
-  -> Quality Check
-  -> Ready for Dispatch
-  -> Vehicle + Driver
-  -> In Transit
-  -> Near Destination
-  -> Delivered
-  -> Installed
+  -> Estimate / quotation
+  -> Customer approval
+  -> Repair / production
+  -> Work-stage updates + photos
+  -> Quality check
+  -> Ready for dispatch
+  -> Driver + vehicle assignment
+  -> Dispatch
+  -> Live GPS tracking
+  -> Near-destination geofence
+  -> Proof of delivery
+  -> Installation
+  -> Invoice / payment
+  -> Warranty / complaint support
 ```
 
 ## Run locally
 
-Requirements: Java 21 and Maven.
+Requirements:
+
+- Java 21
+- Maven
 
 ```bash
 mvn spring-boot:run
 ```
 
-Open:
+Local URLs:
 
-- Dashboard: `http://localhost:8080`
-- H2 Console: `http://localhost:8080/h2-console`
+- Login: `http://localhost:8080/login.html`
+- Business management UI: `http://localhost:8080/management.html`
+- Core operations dashboard: `http://localhost:8080/`
+- H2 console: `http://localhost:8080/h2-console`
 - Health: `http://localhost:8080/actuator/health`
 
-The development profile seeds realistic demo data so the UI is not empty on first start.
+### Development login
 
-## Live delivery tracking
-
-Open a delivery from the dashboard using **Track**. During development, the tracking page includes a GPS simulator that sends coordinates to:
-
-```http
-POST /api/deliveries/{deliveryId}/locations
-```
-
-When the vehicle enters the configured destination radius, the backend automatically updates the delivery to `NEAR_DESTINATION`.
-
-## Production database
-
-Run with the `prod` profile and configure:
+The local development defaults are:
 
 ```text
-DATABASE_URL
-DATABASE_USERNAME
-DATABASE_PASSWORD
+Email: admin@operation.local
+Password: Admin@12345
 ```
 
-Example:
+These values are for local development only. The production profile requires explicit environment variables and does not fall back to the development credentials.
+
+## Production configuration
+
+Run with:
 
 ```bash
 java -jar target/operation-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ```
 
-## Core API examples
+Required environment variables:
 
 ```text
-GET    /api/dashboard
-GET    /api/customers
-POST   /api/customers
-GET    /api/assets
-POST   /api/assets
-GET    /api/work-orders
-POST   /api/work-orders
-PATCH  /api/work-orders/{id}
-POST   /api/work-orders/{id}/updates
-GET    /api/inventory
-POST   /api/inventory
-POST   /api/deliveries
-PATCH  /api/deliveries/{id}
-POST   /api/deliveries/{id}/locations
-GET    /api/deliveries/{id}/locations/latest
-GET    /api/timeline/{type}/{id}
+DATABASE_URL
+DATABASE_USERNAME
+DATABASE_PASSWORD
+JWT_SECRET
+BOOTSTRAP_ADMIN_EMAIL
+BOOTSTRAP_ADMIN_PASSWORD
 ```
 
-## Current security note
+Recommended production variables:
 
-The current repository intentionally keeps operational APIs open for local development/demo convenience. Before a public deployment, replace the development security policy with JWT/RBAC and restrict roles such as Admin, Operations Manager, Workshop Manager, QC Inspector, Driver, and Customer.
+```text
+PUBLIC_BASE_URL=https://your-domain.example
+SECURE_COOKIE=true
+REDIS_URL=redis://...
+TRACKING_REDIS_ENABLED=true
+STORAGE_ROOT=/persistent/path/uploads
+```
 
-## Next production-hardening milestones
+`JWT_SECRET` should be a strong secret of at least 32 characters. Do not commit production credentials to the repository.
 
-1. JWT authentication and role-based authorization.
-2. Redis-backed latest-location state and stale-driver alerts.
-3. Real object-storage uploads for before/after repair photos and POD.
-4. QR asset labels and public customer tracking tokens.
-5. Vehicle/driver master data and smart assignment.
-6. Quotations, invoices, complaints, warranty, and purchase requests.
-7. Flyway database migrations and deployment configuration.
+## Authentication and roles
+
+Supported roles:
+
+```text
+ADMIN
+OPERATIONS_MANAGER
+WORKSHOP_MANAGER
+QC_INSPECTOR
+DRIVER
+CUSTOMER
+```
+
+Browser login stores the JWT in an HttpOnly SameSite cookie. API clients can use:
+
+```http
+Authorization: Bearer <jwt>
+```
+
+## Public delivery tracking
+
+Every delivery receives an opaque random tracking token.
+
+Management access:
+
+```http
+GET /api/deliveries/{deliveryId}/tracking-access
+```
+
+Public tracking:
+
+```http
+GET /api/public/track/{token}
+GET /api/public/track/{token}/qr
+```
+
+QR codes open:
+
+```text
+/tracking.html?token=<opaque-token>
+```
+
+The public response intentionally avoids exposing the driver's phone number or internal operational details.
+
+## GPS tracking
+
+```http
+POST /api/deliveries/{deliveryId}/locations
+GET  /api/deliveries/{deliveryId}/locations/latest
+GET  /api/deliveries/{deliveryId}/locations/health
+GET  /api/deliveries/{deliveryId}/locations
+```
+
+Redis can store the latest location while PostgreSQL keeps historical GPS samples. If Redis is disabled, development uses an in-memory latest-location store.
+
+## File and POD uploads
+
+Generic authenticated upload:
+
+```http
+POST /api/files
+Content-Type: multipart/form-data
+```
+
+Proof of delivery:
+
+```http
+POST /api/deliveries/{deliveryId}/proof-of-delivery
+Content-Type: multipart/form-data
+```
+
+Supported upload types include JPEG, PNG, WebP, and PDF.
+
+## Fleet API
+
+```text
+POST /api/fleet/drivers
+GET  /api/fleet/drivers
+POST /api/fleet/vehicles
+GET  /api/fleet/vehicles
+POST /api/fleet/deliveries/{deliveryId}/assign
+```
+
+## Commercial API
+
+```text
+POST /api/commercial/work-orders/{workOrderId}/quotations
+POST /api/commercial/quotations/{quotationId}/approve
+POST /api/commercial/work-orders/{workOrderId}/invoices
+POST /api/commercial/invoices/{invoiceId}/payments
+```
+
+## Procurement API
+
+```text
+POST  /api/procurement/suppliers
+GET   /api/procurement/suppliers
+POST  /api/procurement/purchase-requests
+PATCH /api/procurement/purchase-requests/{id}/status
+```
+
+## Warranty and complaints API
+
+```text
+POST  /api/support/warranties
+GET   /api/support/warranties
+POST  /api/support/complaints
+GET   /api/support/complaints
+PATCH /api/support/complaints/{id}
+```
+
+## Database strategy
+
+Local development uses H2 with Hibernate schema updates for quick startup.
+
+Production uses PostgreSQL with:
+
+```text
+Flyway -> applies versioned migrations
+Hibernate ddl-auto=validate -> verifies entity/schema compatibility
+```
+
+The initial production schema is in:
+
+```text
+src/main/resources/db/migration/V1__initial_schema.sql
+```
+
+## CI
+
+GitHub Actions runs the Maven build and tests on every push to `main`.
+
+```bash
+mvn clean test
+```
+
+## Repository structure
+
+```text
+src/main/java/com/achyut/operation/
+  api/
+  asset/
+  audit/
+  auth/
+  commercial/
+  config/
+  customer/
+  delivery/
+  fleet/
+  inventory/
+  procurement/
+  service/
+  storage/
+  support/
+  tracking/
+  work/
+
+src/main/resources/
+  db/migration/
+  static/
+```
+
+## Portfolio summary
+
+> Built a Spring Boot operations platform for container repair and porta-cabin production that replaces manual WhatsApp-based delivery tracking with centralized GPS tracking, Redis-backed live state, WebSockets, secure public QR tracking, proof-of-delivery evidence, workflow/audit management, fleet dispatch, inventory procurement, billing, and warranty support.
