@@ -24,6 +24,7 @@ public class DeliveryService implements DeliveryOperations {
     private final ReferenceNumberGenerator numbers;
     private final AuditPort audit;
     private final DeliveryAssetStatusPolicy assetStatusPolicy;
+    private final TransitionPolicy<Delivery.DeliveryStatus> transitionPolicy;
 
     @Override
     public DeliveryView create(DeliveryRequest r) {
@@ -46,6 +47,7 @@ public class DeliveryService implements DeliveryOperations {
     public DeliveryView update(Long id, DeliveryStatusRequest r) {
         Delivery delivery = deliveries.findById(id).orElseThrow(() -> new NoSuchElementException("Delivery not found: " + id));
         Delivery.DeliveryStatus old = delivery.getStatus();
+        transitionPolicy.validate(old, r.status());
         delivery.setStatus(r.status());
         if (r.status() == Delivery.DeliveryStatus.DISPATCHED && delivery.getDispatchedAt() == null) delivery.setDispatchedAt(Instant.now());
         if (r.status() == Delivery.DeliveryStatus.DELIVERED || r.status() == Delivery.DeliveryStatus.INSTALLED) {

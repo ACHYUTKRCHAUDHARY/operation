@@ -2,6 +2,7 @@ package com.achyut.operation.commercial;
 
 import com.achyut.operation.common.AuditPort;
 import com.achyut.operation.common.ReferenceNumberGenerator;
+import com.achyut.operation.common.TransitionPolicy;
 import com.achyut.operation.work.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,12 +22,14 @@ public class CommercialService {
     private final WorkOrderRepository workOrders;
     private final AuditPort audit;
     private final ReferenceNumberGenerator numbers;
+    private final TransitionPolicy<WorkOrder.WorkStatus> transitionPolicy;
 
     public QuotationView createQuotation(Long workOrderId, QuotationRequest r) {
         WorkOrder w = workOrders.findById(workOrderId).orElseThrow(() -> new NoSuchElementException("Work order not found"));
         BigDecimal transport = nz(r.transportCharge()), tax = nz(r.taxAmount()), discount = nz(r.discount());
         BigDecimal total = r.baseAmount().add(transport).add(tax).subtract(discount);
         if (total.signum() < 0) throw new IllegalArgumentException("Quotation total cannot be negative");
+        transitionPolicy.validate(w.getStatus(), WorkOrder.WorkStatus.CUSTOMER_APPROVAL_PENDING);
         Quotation q = quotations.save(Quotation.builder().quotationNumber(numbers.next("QTN")).workOrder(w).baseAmount(r.baseAmount())
             .transportCharge(transport).taxAmount(tax).discount(discount).totalAmount(total).status(Quotation.Status.SENT).validUntil(r.validUntil()).build());
         w.setStatus(WorkOrder.WorkStatus.CUSTOMER_APPROVAL_PENDING);
@@ -38,8 +41,10 @@ public class CommercialService {
     public QuotationView approveQuotation(Long quotationId, String actor) {
         Quotation q = quotations.findById(quotationId).orElseThrow(() -> new NoSuchElementException("Quotation not found"));
         if (q.getStatus() == Quotation.Status.REJECTED || q.getStatus() == Quotation.Status.EXPIRED) throw new IllegalStateException("Quotation cannot be approved");
+        WorkOrder w = q.getWorkOrder();
+        transitionPolicy.validate(w.getStatus(), WorkOrder.WorkStatus.APPROVED);
         q.setStatus(Quotation.Status.APPROVED); q.setApprovedAt(Instant.now());
-        WorkOrder w = q.getWorkOrder(); w.setApprovedCost(q.getTotalAmount()); w.setStatus(WorkOrder.WorkStatus.APPROVED);
+        w.setApprovedCost(q.getTotalAmount()); w.setStatus(WorkOrder.WorkStatus.APPROVED);
         audit.record("WORK_ORDER", w.getId(), "QUOTATION_APPROVED", actor(actor), q.getQuotationNumber());
         return view(q);
     }

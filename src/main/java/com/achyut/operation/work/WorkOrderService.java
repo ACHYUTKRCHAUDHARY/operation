@@ -25,6 +25,7 @@ public class WorkOrderService implements WorkOrderOperations {
     private final ReferenceNumberGenerator numbers;
     private final AuditPort audit;
     private final WorkOrderAssetStatusPolicy assetStatusPolicy;
+    private final TransitionPolicy<WorkOrder.WorkStatus> transitionPolicy;
 
     @Override
     public WorkOrderView create(WorkOrderRequest r) {
@@ -47,6 +48,7 @@ public class WorkOrderService implements WorkOrderOperations {
     public WorkOrderView update(Long id, WorkOrderStatusRequest r) {
         WorkOrder workOrder = find(id);
         WorkOrder.WorkStatus old = workOrder.getStatus();
+        transitionPolicy.validate(old, r.status());
         workOrder.setStatus(r.status());
         if (r.progressPercent() != null) workOrder.setProgressPercent(Math.max(0, Math.min(100, r.progressPercent())));
         workOrder.setBlockedReason(r.status() == WorkOrder.WorkStatus.BLOCKED ? r.blockedReason() : null);
@@ -65,7 +67,8 @@ public class WorkOrderService implements WorkOrderOperations {
         WorkOrder workOrder = find(id);
         WorkUpdate update = workUpdates.save(WorkUpdate.builder().workOrder(workOrder).stage(r.stage()).status(r.status())
             .assignedTo(r.assignedTo()).note(r.note()).photoUrl(r.photoUrl()).build());
-        if (r.status() == WorkUpdate.StageStatus.IN_PROGRESS && workOrder.getStatus() != WorkOrder.WorkStatus.BLOCKED) {
+        if (r.status() == WorkUpdate.StageStatus.IN_PROGRESS && workOrder.getStatus() != WorkOrder.WorkStatus.BLOCKED && workOrder.getStatus() != WorkOrder.WorkStatus.IN_PROGRESS) {
+            transitionPolicy.validate(workOrder.getStatus(), WorkOrder.WorkStatus.IN_PROGRESS);
             workOrder.setStatus(WorkOrder.WorkStatus.IN_PROGRESS);
             assetStatusPolicy.synchronize(workOrder);
         }
