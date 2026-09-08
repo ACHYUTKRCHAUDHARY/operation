@@ -24,6 +24,9 @@ public class TrackingController {
     @GetMapping("/latest")
     LocationView latest(@PathVariable Long deliveryId) { return trackingService.latest(deliveryId); }
 
+    @GetMapping("/health")
+    TrackingService.TrackingHealth health(@PathVariable Long deliveryId) { return trackingService.health(deliveryId); }
+
     @GetMapping
     List<LocationView> history(@PathVariable Long deliveryId) { return trackingService.history(deliveryId); }
 }

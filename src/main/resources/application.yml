@@ -13,6 +13,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: false
   h2:
     console:
       enabled: true
@@ -32,6 +34,14 @@ management:
         include: health,info,metrics
 
 app:
+  auth:
+    jwt-secret: ${JWT_SECRET:change-this-development-secret-key-1234567890}
+    jwt-expiration-seconds: 28800
+    bootstrap-admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@operation.local}
+    bootstrap-admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin@12345}
   tracking:
+    redis-enabled: ${TRACKING_REDIS_ENABLED:false}
     stale-minutes: 25
     near-destination-meters: 500
+  storage:
+    root: ${STORAGE_ROOT:uploads}
