@@ -13,6 +13,10 @@ import java.util.Optional;
 public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     Optional<Delivery> findByDeliveryNumber(String deliveryNumber);
 
+    @Override
+    @EntityGraph(attributePaths = {"workOrder", "asset"})
+    List<Delivery> findAll();
+
     @EntityGraph(attributePaths = {"asset"})
     Optional<Delivery> findByPublicTrackingToken(String publicTrackingToken);
 
