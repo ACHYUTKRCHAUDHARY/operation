@@ -24,6 +24,9 @@ server:
 app:
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
   auth:
+    jwt-secret: ${JWT_SECRET}
+    bootstrap-admin-email: ${BOOTSTRAP_ADMIN_EMAIL}
+    bootstrap-admin-password: ${BOOTSTRAP_ADMIN_PASSWORD}
     secure-cookie: ${SECURE_COOKIE:true}
   tracking:
     redis-enabled: ${TRACKING_REDIS_ENABLED:false}
