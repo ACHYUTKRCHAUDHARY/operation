@@ -21,14 +21,14 @@ public class RedisLatestLocationStore implements LatestLocationStore {
     }
 
     public void put(Long deliveryId, Snapshot s) {
-        faultTolerance.run("redis-location", () -> {
+        faultTolerance.runWithRetry("redis-location", () -> {
             String value = s.latitude() + "," + s.longitude() + "," + nullable(s.accuracyMeters()) + "," + nullable(s.speedKph()) + "," + s.recordedAt();
             redis.opsForValue().set(key(deliveryId), value, Duration.ofHours(24));
         });
     }
 
     public Optional<Snapshot> get(Long deliveryId) {
-        return faultTolerance.execute("redis-location", () -> {
+        return faultTolerance.executeWithRetry("redis-location", () -> {
             String value = redis.opsForValue().get(key(deliveryId));
             if (value == null) return Optional.empty();
             String[] p = value.split(",", -1);
