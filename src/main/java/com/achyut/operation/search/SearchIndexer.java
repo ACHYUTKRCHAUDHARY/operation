@@ -31,7 +31,7 @@ public class SearchIndexer {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Transactional(readOnly = true)
     public void onIndexRequested(SearchIndexRequested event) {
-        faultTolerance.run("elasticsearch-index", () -> index(event.type(), event.entityId()));
+        faultTolerance.runWithRetry("elasticsearch-index", () -> index(event.type(), event.entityId()));
     }
 
     @Transactional(readOnly = true)
