@@ -2,6 +2,7 @@ package com.achyut.operation.service;
 
 import com.achyut.operation.api.ApiModels.LocationRequest;
 import com.achyut.operation.api.ApiModels.LocationView;
+import com.achyut.operation.common.AuditPort;
 import com.achyut.operation.delivery.*;
 import com.achyut.operation.tracking.LatestLocationStore;
 import jakarta.transaction.Transactional;
@@ -22,7 +23,7 @@ public class TrackingService {
     private final DeliveryRepository deliveryRepository;
     private final LocationUpdateRepository locationRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    private final OperationsService operationsService;
+    private final AuditPort audit;
     private final LatestLocationStore latestLocationStore;
 
     @Value("${app.tracking.near-destination-meters:500}")
@@ -41,7 +42,7 @@ public class TrackingService {
 
         if (distance <= nearDestinationMeters && delivery.getStatus() == Delivery.DeliveryStatus.IN_TRANSIT) {
             delivery.setStatus(Delivery.DeliveryStatus.NEAR_DESTINATION);
-            operationsService.audit("DELIVERY", deliveryId, "GEOFENCE_ENTERED", "system", "Vehicle entered " + Math.round(nearDestinationMeters) + "m destination geofence");
+            audit.record("DELIVERY", deliveryId, "GEOFENCE_ENTERED", "system", "Vehicle entered " + Math.round(nearDestinationMeters) + "m destination geofence");
         }
 
         LocationView view = view(update, distance);

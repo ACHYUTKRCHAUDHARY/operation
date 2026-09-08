@@ -1,6 +1,7 @@
 package com.achyut.operation.commercial;
 
-import com.achyut.operation.service.OperationsService;
+import com.achyut.operation.common.AuditPort;
+import com.achyut.operation.common.ReferenceNumberGenerator;
 import com.achyut.operation.work.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -18,18 +19,19 @@ public class CommercialService {
     private final InvoiceRepository invoices;
     private final PaymentRepository payments;
     private final WorkOrderRepository workOrders;
-    private final OperationsService operations;
+    private final AuditPort audit;
+    private final ReferenceNumberGenerator numbers;
 
     public QuotationView createQuotation(Long workOrderId, QuotationRequest r) {
         WorkOrder w = workOrders.findById(workOrderId).orElseThrow(() -> new NoSuchElementException("Work order not found"));
         BigDecimal transport = nz(r.transportCharge()), tax = nz(r.taxAmount()), discount = nz(r.discount());
         BigDecimal total = r.baseAmount().add(transport).add(tax).subtract(discount);
         if (total.signum() < 0) throw new IllegalArgumentException("Quotation total cannot be negative");
-        Quotation q = quotations.save(Quotation.builder().quotationNumber(number("QTN")).workOrder(w).baseAmount(r.baseAmount())
+        Quotation q = quotations.save(Quotation.builder().quotationNumber(numbers.next("QTN")).workOrder(w).baseAmount(r.baseAmount())
             .transportCharge(transport).taxAmount(tax).discount(discount).totalAmount(total).status(Quotation.Status.SENT).validUntil(r.validUntil()).build());
         w.setStatus(WorkOrder.WorkStatus.CUSTOMER_APPROVAL_PENDING);
         w.setEstimatedCost(total);
-        operations.audit("WORK_ORDER", workOrderId, "QUOTATION_SENT", actor(r.actor()), q.getQuotationNumber()+" total "+total);
+        audit.record("WORK_ORDER", workOrderId, "QUOTATION_SENT", actor(r.actor()), q.getQuotationNumber()+" total "+total);
         return view(q);
     }
 
@@ -38,7 +40,7 @@ public class CommercialService {
         if (q.getStatus() == Quotation.Status.REJECTED || q.getStatus() == Quotation.Status.EXPIRED) throw new IllegalStateException("Quotation cannot be approved");
         q.setStatus(Quotation.Status.APPROVED); q.setApprovedAt(Instant.now());
         WorkOrder w = q.getWorkOrder(); w.setApprovedCost(q.getTotalAmount()); w.setStatus(WorkOrder.WorkStatus.APPROVED);
-        operations.audit("WORK_ORDER", w.getId(), "QUOTATION_APPROVED", actor(actor), q.getQuotationNumber());
+        audit.record("WORK_ORDER", w.getId(), "QUOTATION_APPROVED", actor(actor), q.getQuotationNumber());
         return view(q);
     }
 
@@ -46,9 +48,9 @@ public class CommercialService {
         WorkOrder w = workOrders.findById(workOrderId).orElseThrow(() -> new NoSuchElementException("Work order not found"));
         BigDecimal amount = r.amountDue()!=null ? r.amountDue() : (w.getApprovedCost()!=null ? w.getApprovedCost() : w.getEstimatedCost());
         if (amount == null || amount.signum() <= 0) throw new IllegalArgumentException("Invoice amount must be positive");
-        Invoice i = invoices.save(Invoice.builder().invoiceNumber(number("INV")).workOrder(w).amountDue(amount).amountPaid(BigDecimal.ZERO)
+        Invoice i = invoices.save(Invoice.builder().invoiceNumber(numbers.next("INV")).workOrder(w).amountDue(amount).amountPaid(BigDecimal.ZERO)
             .status(Invoice.Status.ISSUED).issueDate(LocalDate.now()).dueDate(r.dueDate()).build());
-        operations.audit("WORK_ORDER", workOrderId, "INVOICE_ISSUED", actor(r.actor()), i.getInvoiceNumber()+" amount "+amount);
+        audit.record("WORK_ORDER", workOrderId, "INVOICE_ISSUED", actor(r.actor()), i.getInvoiceNumber()+" amount "+amount);
         return view(i);
     }
 
@@ -60,7 +62,7 @@ public class CommercialService {
         Payment p = payments.save(Payment.builder().invoice(i).amount(r.amount()).method(r.method()).referenceNumber(r.referenceNumber()).note(r.note()).build());
         i.setAmountPaid(i.getAmountPaid().add(r.amount()));
         i.setStatus(i.getAmountPaid().compareTo(i.getAmountDue()) >= 0 ? Invoice.Status.PAID : Invoice.Status.PARTIALLY_PAID);
-        operations.audit("WORK_ORDER", i.getWorkOrder().getId(), "PAYMENT_RECORDED", actor(r.actor()), i.getInvoiceNumber()+" payment "+r.amount());
+        audit.record("WORK_ORDER", i.getWorkOrder().getId(), "PAYMENT_RECORDED", actor(r.actor()), i.getInvoiceNumber()+" payment "+r.amount());
         return new PaymentView(p.getId(), invoiceId, p.getAmount(), p.getMethod(), p.getReferenceNumber(), p.getPaidAt());
     }
 
@@ -72,7 +74,6 @@ public class CommercialService {
     private InvoiceView view(Invoice i){ return new InvoiceView(i.getId(),i.getInvoiceNumber(),i.getWorkOrder().getId(),i.getAmountDue(),i.getAmountPaid(),i.getStatus(),i.getIssueDate(),i.getDueDate()); }
     private static BigDecimal nz(BigDecimal v){ return v==null?BigDecimal.ZERO:v; }
     private static String actor(String a){ return a==null||a.isBlank()?"system":a; }
-    private static String number(String p){ return p+"-"+Instant.now().toEpochMilli()+"-"+UUID.randomUUID().toString().substring(0,4).toUpperCase(); }
 
     public record QuotationRequest(BigDecimal baseAmount, BigDecimal transportCharge, BigDecimal taxAmount, BigDecimal discount, LocalDate validUntil, String actor) {}
     public record InvoiceRequest(BigDecimal amountDue, LocalDate dueDate, String actor) {}

@@ -1,7 +1,8 @@
 package com.achyut.operation.procurement;
 
+import com.achyut.operation.common.AuditPort;
+import com.achyut.operation.common.ReferenceNumberGenerator;
 import com.achyut.operation.inventory.*;
-import com.achyut.operation.service.OperationsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,8 @@ public class ProcurementService {
     private final SupplierRepository suppliers;
     private final PurchaseRequestRepository requests;
     private final InventoryItemRepository inventory;
-    private final OperationsService operations;
+    private final AuditPort audit;
+    private final ReferenceNumberGenerator numbers;
 
     public Supplier createSupplier(SupplierRequest r){
         return suppliers.save(Supplier.builder().name(r.name()).contactPerson(r.contactPerson()).phone(r.phone()).email(r.email()).address(r.address()).active(true).build());
@@ -29,10 +31,10 @@ public class ProcurementService {
         InventoryItem item=inventory.findById(r.inventoryItemId()).orElseThrow(()->new NoSuchElementException("Inventory item not found"));
         Supplier supplier=r.supplierId()==null?null:suppliers.findById(r.supplierId()).orElseThrow(()->new NoSuchElementException("Supplier not found"));
         if(r.quantity()==null||r.quantity().signum()<=0) throw new IllegalArgumentException("Quantity must be positive");
-        PurchaseRequest pr=requests.save(PurchaseRequest.builder().requestNumber(number()).inventoryItem(item).supplier(supplier)
+        PurchaseRequest pr=requests.save(PurchaseRequest.builder().requestNumber(numbers.next("PR")).inventoryItem(item).supplier(supplier)
             .quantity(r.quantity()).expectedUnitCost(r.expectedUnitCost()).status(PurchaseRequest.Status.REQUESTED)
             .requestedBy(actor(r.requestedBy())).note(r.note()).build());
-        operations.audit("INVENTORY",item.getId(),"PURCHASE_REQUESTED",actor(r.requestedBy()),pr.getRequestNumber()+" qty "+r.quantity());
+        audit.record("INVENTORY",item.getId(),"PURCHASE_REQUESTED",actor(r.requestedBy()),pr.getRequestNumber()+" qty "+r.quantity());
         return view(pr);
     }
 
@@ -47,7 +49,7 @@ public class ProcurementService {
                 item.setQuantityOnHand((item.getQuantityOnHand()==null?BigDecimal.ZERO:item.getQuantityOnHand()).add(pr.getQuantity()));
                 if(pr.getExpectedUnitCost()!=null) item.setUnitCost(pr.getExpectedUnitCost());
                 pr.setReceivedAt(Instant.now());
-                operations.audit("INVENTORY",item.getId(),"STOCK_RECEIVED",actor(r.actor()),pr.getRequestNumber()+" +"+pr.getQuantity()+" "+item.getUnit());
+                audit.record("INVENTORY",item.getId(),"STOCK_RECEIVED",actor(r.actor()),pr.getRequestNumber()+" +"+pr.getQuantity()+" "+item.getUnit());
             }
             default -> { }
         }
@@ -62,7 +64,6 @@ public class ProcurementService {
             p.getSupplier()==null?null:p.getSupplier().getName(),p.getQuantity(),p.getExpectedUnitCost(),p.getStatus(),p.getRequestedBy(),p.getApprovedBy(),p.getRequestedAt(),p.getReceivedAt());
     }
     private static String actor(String a){return a==null||a.isBlank()?"system":a;}
-    private static String number(){return "PR-"+Instant.now().toEpochMilli()+"-"+UUID.randomUUID().toString().substring(0,4).toUpperCase();}
 
     public record SupplierRequest(String name,String contactPerson,String phone,String email,String address){}
     public record PurchaseRequestCreate(Long inventoryItemId,Long supplierId,BigDecimal quantity,BigDecimal expectedUnitCost,String requestedBy,String note){}
