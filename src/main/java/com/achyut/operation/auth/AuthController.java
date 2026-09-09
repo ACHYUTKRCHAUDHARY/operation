@@ -12,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Locale;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -24,6 +26,25 @@ public class AuthController {
     private long expirationSeconds;
     @Value("${app.auth.secure-cookie:false}")
     private boolean secureCookie;
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists");
+        }
+
+        AppUser user = AppUser.builder()
+            .email(email)
+            .passwordHash(passwordEncoder.encode(request.password()))
+            .fullName(request.fullName().trim())
+            .role(AppUser.Role.CUSTOMER)
+            .enabled(true)
+            .build();
+        AppUser saved = userRepository.save(user);
+        return new RegisterResponse(saved.getId(), saved.getFullName(), saved.getEmail(), saved.getRole().name());
+    }
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
@@ -46,6 +67,12 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
     }
 
+    public record RegisterRequest(
+        @NotBlank @Size(min = 2, max = 100) String fullName,
+        @Email @NotBlank @Size(max = 160) String email,
+        @NotBlank @Size(min = 8, max = 72) String password
+    ) {}
+    public record RegisterResponse(Long id, String fullName, String email, String role) {}
     public record LoginRequest(@Email @NotBlank String email, @NotBlank @Size(min = 8) String password) {}
     public record AuthResponse(String token, String fullName, String email, String role) {}
 }
