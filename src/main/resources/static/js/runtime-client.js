@@ -46,6 +46,20 @@
   window.yardFlowRole = () => session()?.role || '';
   window.yardFlowHomeForRole = homeForRole;
 
+  const current = session();
+  const path = window.location.pathname;
+  const internalHome = path === '/' || path === '/index.html';
+  if (current?.role === 'CUSTOMER' && internalHome) {
+    window.stop();
+    window.location.replace('/customer.html');
+    return;
+  }
+  if (current?.role && current.role !== 'CUSTOMER' && path === '/customer.html') {
+    window.stop();
+    window.location.replace('/');
+    return;
+  }
+
   window.fetch = async (input, init = {}) => {
     const rawUrl = typeof input === 'string' ? input : input.url;
     const isBackendPath = rawUrl.startsWith('/api/') || rawUrl.startsWith('/actuator/');
