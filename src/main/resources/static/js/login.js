@@ -8,6 +8,7 @@ if (params.get('registered') === '1') {
   const email = params.get('email');
   if (email) form.elements.email.value = email;
 }
+if (params.get('session') === 'expired') successEl.textContent = 'Your session expired. Sign in again.';
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -36,8 +37,8 @@ form.addEventListener('submit', async (event) => {
       throw new Error(message);
     }
 
-    const session = await response.json();
-    window.location.replace(session.role === 'CUSTOMER' ? '/customer.html' : '/');
+    await response.json();
+    window.location.replace('/home.html');
   } catch (error) {
     errorEl.textContent = error.message;
   } finally {
