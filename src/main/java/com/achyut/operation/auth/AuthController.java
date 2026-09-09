@@ -1,5 +1,7 @@
 package com.achyut.operation.auth;
 
+import com.achyut.operation.customer.Customer;
+import com.achyut.operation.customer.CustomerRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -9,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,6 +22,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AuthController {
     private final AppUserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -29,6 +33,7 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
     public RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
@@ -43,6 +48,14 @@ public class AuthController {
             .enabled(true)
             .build();
         AppUser saved = userRepository.save(user);
+
+        customerRepository.findByEmailIgnoreCase(email).orElseGet(() -> customerRepository.save(
+            Customer.builder()
+                .name(saved.getFullName())
+                .email(saved.getEmail())
+                .build()
+        ));
+
         return new RegisterResponse(saved.getId(), saved.getFullName(), saved.getEmail(), saved.getRole().name());
     }
 
