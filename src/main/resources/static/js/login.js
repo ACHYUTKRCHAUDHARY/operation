@@ -36,8 +36,8 @@ form.addEventListener('submit', async (event) => {
       throw new Error(message);
     }
 
-    await response.json();
-    window.location.replace('/');
+    const session = await response.json();
+    window.location.replace(session.role === 'CUSTOMER' ? '/customer.html' : '/');
   } catch (error) {
     errorEl.textContent = error.message;
   } finally {
