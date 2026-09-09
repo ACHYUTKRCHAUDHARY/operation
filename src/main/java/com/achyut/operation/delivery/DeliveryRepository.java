@@ -20,6 +20,9 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     @EntityGraph(attributePaths = {"asset"})
     Optional<Delivery> findByPublicTrackingToken(String publicTrackingToken);
 
+    @EntityGraph(attributePaths = {"workOrder", "asset"})
+    List<Delivery> findByWorkOrderCustomerIdOrderByCreatedAtDesc(Long customerId);
+
     long countByStatus(Delivery.DeliveryStatus status);
 
     @EntityGraph(attributePaths = {"asset"})
