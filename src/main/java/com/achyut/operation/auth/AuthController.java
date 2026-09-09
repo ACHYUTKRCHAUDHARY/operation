@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -61,7 +62,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        AppUser user = userRepository.findByEmailIgnoreCase(request.email())
+        AppUser user = userRepository.findByEmailIgnoreCase(request.email().trim())
             .filter(AppUser::isEnabled)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
@@ -71,6 +72,17 @@ public class AuthController {
         ResponseCookie cookie=ResponseCookie.from("operation_token",token).httpOnly(true).secure(secureCookie).sameSite("Strict").path("/").maxAge(expirationSeconds).build();
         response.addHeader(HttpHeaders.SET_COOKIE,cookie.toString());
         return new AuthResponse(token, user.getFullName(), user.getEmail(), user.getRole().name());
+    }
+
+    @GetMapping("/me")
+    public AuthResponse me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        AppUser user = userRepository.findByEmailIgnoreCase(authentication.getName())
+            .filter(AppUser::isEnabled)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account is unavailable"));
+        return new AuthResponse(null, user.getFullName(), user.getEmail(), user.getRole().name());
     }
 
     @PostMapping("/logout")
