@@ -40,7 +40,7 @@ public class SecurityConfig {
             }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/login.html", "/tracking.html", "/css/**", "/js/**", "/api/auth/login", "/api/auth/logout", "/api/public/**", "/ws/**", "/h2-console/**", "/actuator/health").permitAll()
+                .requestMatchers("/login.html", "/register.html", "/tracking.html", "/css/**", "/js/**", "/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/public/**", "/ws/**", "/h2-console/**", "/actuator/health").permitAll()
                 .requestMatchers("/api/tracking/**", "/api/deliveries/*/locations/**").hasAnyRole("ADMIN", "OPERATIONS_MANAGER", "DRIVER")
                 .requestMatchers("/api/**").hasAnyRole("ADMIN", "OPERATIONS_MANAGER", "WORKSHOP_MANAGER", "QC_INSPECTOR")
                 .anyRequest().authenticated())
