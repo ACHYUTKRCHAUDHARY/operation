@@ -18,6 +18,9 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, Long> {
     @EntityGraph(attributePaths = {"customer", "asset"})
     List<WorkOrder> findAll();
 
+    @EntityGraph(attributePaths = {"asset"})
+    List<WorkOrder> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+
     @Query("select count(w) from WorkOrder w where w.status not in :statuses")
     long countByStatusNotIn(@Param("statuses") List<WorkOrder.WorkStatus> statuses);
 
