@@ -1,6 +1,9 @@
 (() => {
   const nativeFetch = window.fetch.bind(window);
-  const apiBase = String(window.YARDFLOW_API_BASE || '').replace(/\/$/, '');
+  const defaultApiBase = window.location.hostname.endsWith('.vercel.app')
+    ? 'https://yardflow-zzow.onrender.com'
+    : '';
+  const apiBase = String(window.YARDFLOW_API_BASE || defaultApiBase).replace(/\/$/, '');
   const tokenKey = 'yardflow_access_token';
 
   window.yardFlowApiBase = apiBase;
