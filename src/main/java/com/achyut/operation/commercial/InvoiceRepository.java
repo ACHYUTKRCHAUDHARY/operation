@@ -1,8 +1,12 @@
 package com.achyut.operation.commercial;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByWorkOrderIdOrderByCreatedAtDesc(Long workOrderId);
+
+    @EntityGraph(attributePaths = {"workOrder", "workOrder.asset"})
+    List<Invoice> findByWorkOrderCustomerIdOrderByCreatedAtDesc(Long customerId);
 }
