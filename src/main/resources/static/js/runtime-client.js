@@ -5,9 +5,46 @@
     : '';
   const apiBase = String(window.YARDFLOW_API_BASE || defaultApiBase).replace(/\/$/, '');
   const tokenKey = 'yardflow_access_token';
+  const cacheKey = 'yardflow-dashboard-cache-v2';
+
+  const decodeToken = (token) => {
+    if (!token) return null;
+    try {
+      const part = token.split('.')[1];
+      const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
+      const json = decodeURIComponent(atob(normalized).split('').map(c => `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`).join(''));
+      const payload = JSON.parse(json);
+      if (payload.exp && payload.exp * 1000 <= Date.now()) return null;
+      return payload;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const clearSession = () => {
+    sessionStorage.removeItem(tokenKey);
+    sessionStorage.removeItem(cacheKey);
+  };
+
+  const session = () => {
+    const token = sessionStorage.getItem(tokenKey);
+    const claims = decodeToken(token);
+    if (!claims && token) clearSession();
+    return claims ? {
+      token,
+      email: claims.sub || '',
+      fullName: claims.name || '',
+      role: claims.role || ''
+    } : null;
+  };
+
+  const homeForRole = (role) => role === 'CUSTOMER' ? '/customer.html' : '/';
 
   window.yardFlowApiBase = apiBase;
-  window.yardFlowClearSession = () => sessionStorage.removeItem(tokenKey);
+  window.yardFlowClearSession = clearSession;
+  window.yardFlowSession = session;
+  window.yardFlowRole = () => session()?.role || '';
+  window.yardFlowHomeForRole = homeForRole;
 
   window.fetch = async (input, init = {}) => {
     const rawUrl = typeof input === 'string' ? input : input.url;
@@ -29,7 +66,7 @@
         if (payload?.token) sessionStorage.setItem(tokenKey, payload.token);
       } catch (_) {}
     }
-    if (rawUrl === '/api/auth/logout') sessionStorage.removeItem(tokenKey);
+    if (rawUrl === '/api/auth/logout' || (isBackendPath && response.status === 401)) clearSession();
     return response;
   };
 })();
