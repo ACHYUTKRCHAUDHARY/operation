@@ -14,4 +14,6 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     @Override
     @EntityGraph(attributePaths = {"customer"})
     List<Asset> findAll();
+
+    List<Asset> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
 }
