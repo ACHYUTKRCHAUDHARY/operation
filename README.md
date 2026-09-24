@@ -158,7 +158,8 @@ Examples of enforced lifecycle rules include preventing `COMPLETED -> IN_PROGRES
 - PostgreSQL + Flyway production profile
 - H2 local development profile
 - Redis latest-location cache
-- Vanilla HTML/CSS/JavaScript
+- React 19 + Vite + TanStack Query
+- Legacy Vanilla HTML/CSS/JavaScript screens remain available during migration
 - Leaflet + OpenStreetMap
 - Maven + GitHub Actions
 
@@ -203,11 +204,17 @@ Customer
 
 ## Run locally
 
-Requirements: Java 21 and Maven.
+Requirements: Java 21, Maven, and Node.js 20+ for the React frontend.
 
 ```bash
+cd frontend
+npm install
+npm run build
+cd ..
 mvn spring-boot:run
 ```
+
+For frontend-only development, run `npm run dev` inside `frontend`; Vite proxies `/api` and `/actuator` to Spring Boot on port 8080.
 
 Open:
 

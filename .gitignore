@@ -6,3 +6,6 @@ target/
 *.log
 .DS_Store
 uploads/
+
+frontend/node_modules/
+src/main/resources/static/react/
